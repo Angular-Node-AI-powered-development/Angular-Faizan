@@ -1,0 +1,49 @@
+<div class="calendar-entries">
+  <!-- Top bar / metadata — editable per contract -->
+  <header class="top-bar">
+    <span class="top-bar__label">Status</span>
+    <input
+      type="text"
+      class="top-bar__input"
+      [ngModel]="status()"
+      (ngModelChange)="onStatusChange($event)"
+      aria-label="Status"
+    />
+    <span class="top-bar__label">Date</span>
+    <input
+      type="text"
+      class="top-bar__input"
+      [ngModel]="date()"
+      (ngModelChange)="onDateChange($event)"
+      aria-label="Date"
+    />
+    <span class="top-bar__label">Contributors</span>
+    <input
+      type="text"
+      class="top-bar__input"
+      [ngModel]="contributors()"
+      (ngModelChange)="onContributorsChange($event)"
+      aria-label="Contributors"
+    />
+  </header>
+
+  <!-- Page title per contract -->
+  <div class="page-title">Calendar Entries</div>
+
+  <!-- Add Entry button — present; display-only until Story 2 -->
+  <div class="toolbar">
+    <button type="button" class="btn-add-entry" disabled aria-disabled="true">
+      Add Entry
+    </button>
+  </div>
+
+  <!-- FullCalendar: week (default) and month views, Today, prev/next -->
+  @if (calendarOptions(); as options) {
+    <full-calendar [options]="options" [events]="events()" />
+  }
+
+  <!-- Summary: total hours per day/week — placeholder -->
+  <section class="summary" aria-label="Total hours">
+    <p class="summary__text">Total hours: —</p>
+  </section>
+</div>

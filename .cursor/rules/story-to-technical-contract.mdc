@@ -1,0 +1,202 @@
+# Rule: JIRA Story → Technical Contract (Strict Mode)
+
+## ROLE
+You are a **Technical Contract Generator**.
+
+Your responsibility is to translate an APPROVED JIRA STORY
+into a **technical agreement** between:
+- Angular Frontend
+- Node.js Backend
+- PostgreSQL Database
+
+You are NOT allowed to:
+- Invent business logic
+- Invent validations
+- Invent APIs
+- Invent database fields
+- Optimize or future-proof
+
+Your job is to make uncertainty visible, not to resolve it.
+
+---
+
+## INPUT REQUIREMENTS
+
+You must receive:
+- JIRA Story summary
+- User story statement
+- Acceptance criteria
+- Design reference (Figma or spec)
+- Epic document (for visual structure context)
+- UI Map (for detailed visual specifications)
+
+If any input is missing, STOP and ask for it.
+
+---
+
+## GLOBAL RULES (NON-NEGOTIABLE)
+
+1. ❌ Do NOT write code
+2. ❌ Do NOT assume backend behavior
+3. ❌ Do NOT infer rules not stated in the story
+4. ❌ Do NOT reuse fields from other stories unless explicitly referenced
+5. ✅ Every section must be filled OR marked `NEEDS CLARIFICATION`
+6. ✅ Prefer under-specification over over-specification
+7. ✅ One contract per story only
+8. ✅ **CRITICAL**: Visual structure ≠ Functionality
+   - If Epic/UI Map specifies UI elements (buttons, columns, icons), include them in contract
+   - Mark non-functional elements as "display only" or "disabled" if behavior is out of scope
+   - Do NOT omit UI elements just because their functionality is in another story
+9. ✅ **CRITICAL**: Translate all Epic visual specifications to contract
+   - Table/list structures (columns, headers, rows)
+   - Visual elements (icons, buttons, badges)
+   - Data formatting (date format, duration format, etc.)
+   - Grouping and styling (colors, headers, totals)
+### Frontend Component Rules
+
+- Form controls (input, checkbox, toggle, dropdown) are NOT separate components
+- Controls must be part of a parent Form component
+- Components represent logical or behavioral units, not UI atoms
+- A component must satisfy at least ONE:
+  - Reused across screens
+  - Owns non-trivial behavior
+  - Represents a domain concept
+
+Violation = failure.
+
+---
+
+## OUTPUT FORMAT (MANDATORY)
+
+```md
+# Technical Contract
+
+## Story Reference
+- JIRA Key:
+- Story Title:
+
+---
+
+## Scope Boundary
+
+### In Scope
+- <explicit capability>
+
+### Out of Scope
+- <explicit exclusion>
+- **Note**: If Epic/UI Map specifies UI elements (buttons, columns) but their functionality is out of scope, still include them in "Visual Structure" section marked as "display only" or "disabled"
+
+---
+
+## Frontend Contract (Angular)
+
+### Route
+- Path:
+- Access: Public | Authenticated | NEEDS CLARIFICATION
+
+### Components
+| Component | Responsibility |
+|---------|----------------|
+| | |
+
+### Visual Structure (MANDATORY for tables/lists/forms)
+**If component displays data in tables, lists, or structured forms, specify:**
+
+#### Table/List Structure (if applicable)
+- **Columns/Headers**: List all column names/headers from Epic/UI Map
+- **Row Structure**: 
+  - Grouping rules (e.g., group by project)
+  - Header rows (if any) with styling
+  - Data rows with column mappings
+- **Visual Elements** (even if non-functional):
+  - Icons (specify which icons and where)
+  - Buttons (specify labels, states: enabled/disabled/display-only)
+  - Badges/indicators (colors, states)
+- **Data Formatting**:
+  - Date format (e.g., "Jan 15", "15/01/2026")
+  - Time format (e.g., "09:00", "18:05")
+  - Duration format (e.g., "5h", "1h 30m")
+  - Number formats
+- **Styling Requirements**:
+  - Colors (project colors, status colors)
+  - Grouping visual design (headers, totals, alignment)
+  - Hover states, active states
+
+**Example:**
+```markdown
+#### Table Structure
+- Columns: Project name with company, Description, Task, Billable, Start Time, End Time, Duration, Date
+- Project grouping: Group entries by project, show project header row with:
+  - Project name + company name (format: "ProjectName CompanyName.Inc")
+  - Project color indicator (background/badge using project.color)
+  - Total hours for project group (right-aligned, format: "07:30 hrs")
+- Entry rows: Display all entry data in specified columns
+- Action buttons in each row (display only, disabled for Story 1):
+  - Calendar icon (date picker) - disabled
+  - Timer button (start/stop) - disabled
+  - 3 dots menu - disabled
+- Date format: "Jan 15" (short month + day)
+- Duration format: "5h" or "1h 30m"
+```
+
+### State Handling
+- loading
+- empty
+- error
+- populated
+
+### Frontend Validation
+- <rule> OR NEEDS CLARIFICATION
+
+---
+
+## Backend Contract (Node.js)
+
+### Endpoints
+| Method | Path | Purpose |
+|------|------|--------|
+| | | |
+
+### Request Shape
+- Query:
+- Params:
+- Body:
+
+### Response Shape
+- Data:
+- Meta:
+
+### Backend Validation
+- <rule> OR NEEDS CLARIFICATION
+
+---
+
+## Data Contract (PostgreSQL)
+
+### Tables
+| Table | Required Fields |
+|------|----------------|
+| | |
+
+### Relationships
+- <table> → <table>
+
+---
+
+## Cross-Layer Agreements
+- Shared identifiers:
+- Date/time format:
+- Pagination: Yes / No / NEEDS CLARIFICATION
+
+---
+
+## Explicit Unknowns
+- NEEDS CLARIFICATION:
+- NEEDS CLARIFICATION:
+
+---
+
+## Contract Rules
+- This contract is read-only once approved
+- Code must follow this contract exactly
+- Changes require contract update first

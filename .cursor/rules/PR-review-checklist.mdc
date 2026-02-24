@@ -1,0 +1,135 @@
+## 🤖 PR Review Checklist
+
+---
+
+### 1️⃣ Scope & Intent (NON-NEGOTIABLE)
+
+- [ ] PR matches the ticket **exactly**
+- [ ] No features added beyond ticket scope
+- [ ] No “helpful extras” added by AI
+- [ ] No silent behavior changes
+- [ ] No TODOs that hide unfinished logic
+
+🚫 If scope creep is detected → **Request Changes**
+
+---
+
+### 2️⃣ Assumption Detection (CRITICAL)
+
+- [ ] No inferred business rules
+- [ ] No guessed validation logic
+- [ ] No hardcoded limits unless explicitly required
+- [ ] No assumptions about user roles or permissions
+- [ ] No assumptions about future requirements
+
+🚫 Any unstated assumption → **Request Changes**
+
+---
+
+### 3️⃣ Architecture & Responsibility
+
+- [ ] Clear separation of concerns
+- [ ] No god components / god services
+- [ ] No logic dumped into UI components
+- [ ] No duplication across layers
+- [ ] Code fits existing project patterns
+
+🚫 Structural deviation → **Request Changes**
+
+---
+
+### 4️⃣ Behavior Verification (NOT VISUAL ONLY)
+
+- [ ] Feature works as described
+- [ ] Edge cases explicitly handled or explicitly ignored
+- [ ] Error states handled intentionally
+- [ ] No hidden side effects
+- [ ] No reliance on undefined behavior
+
+🚫 Undefined behavior → **Request Changes**
+
+---
+
+### 5️⃣ UI / UX (if applicable)
+
+- [ ] UI behavior matches expected flow (not just design)
+- [ ] Interactions behave consistently
+- [ ] Hover / click / drag priorities respected
+- [ ] Responsive behavior verified
+- [ ] No layout hacks or magic numbers
+
+🚫 UI “looks right but behaves wrong” → **Reject**
+
+---
+
+### 6️⃣ Code Quality (AI-Specific)
+
+- [ ] No unnecessary abstractions
+- [ ] No over-generalization
+- [ ] No unused code or dead paths
+- [ ] No excessive comments explaining obvious code
+- [ ] No copy-pasted patterns without need
+
+🚫 Over-engineering → **Request Simplification**
+
+---
+
+### 7️⃣ Hardcoded Values & Config
+
+- [ ] No magic numbers without justification
+- [ ] No environment-specific values hardcoded
+- [ ] No inline configuration that should be centralized
+
+🚫 Hardcoded behavior → **Request Changes**
+
+---
+
+### 8️⃣ Tests (AI MUST be Proven)
+
+- [ ] Tests added or updated
+- [ ] Tests actually validate behavior (not just coverage)
+- [ ] Edge cases covered where risk exists
+- [ ] No meaningless snapshot tests
+
+🚫 No tests for risky logic → **Reject**
+
+---
+
+### 9️⃣ Git Hygiene (MANDATORY)
+
+- [ ] Branch name follows convention
+- [ ] Commit messages follow ticket format
+- [ ] Commits are small and logical
+- [ ] No unrelated formatting changes
+- [ ] No generated files committed accidentally
+
+🚫 Git hygiene issues → **Request Cleanup**
+
+---
+
+### 🔟 Safety & Maintainability
+
+- [ ] Code can be understood by a human in 6 months
+- [ ] No “AI cleverness”
+- [ ] No fragile logic
+- [ ] No tight coupling to implementation details
+
+🚫 Fragile or opaque code → **Request Refactor**
+
+---
+
+## ✅ Final Decision (Choose One)
+
+- [ ] **Approved**
+- [ ] **Approved with minor comments**
+- [ ] **Changes requested**
+- [ ] **Rejected (unsafe or incorrect)**
+
+---
+
+## 🛑 AI Review Rule (Read This)
+
+> If you cannot explain **why** a line of code exists,  
+> it does not belong in the codebase.
+
+AI-generated code must be **provably correct**, not just plausible.

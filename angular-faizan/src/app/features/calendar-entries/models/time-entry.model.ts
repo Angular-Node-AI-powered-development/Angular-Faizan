@@ -11,4 +11,15 @@ export interface TimeEntry {
   end: Date;
   /** Display duration e.g. "8h", "4h" — derived from start/end if not set */
   duration?: string;
+  /** Project color for left border (e.g. #e53935, #43a047, #8e24aa) */
+  projectColor?: string;
+  /** Calendar source for filtering: mentioned | logged | integrated */
+  calendarType?: 'mentioned' | 'logged' | 'integrated';
+}
+
+/** Project with color for sidebar and event styling */
+export interface ProjectTask {
+  id: string;
+  name: string;
+  color: string;
 }

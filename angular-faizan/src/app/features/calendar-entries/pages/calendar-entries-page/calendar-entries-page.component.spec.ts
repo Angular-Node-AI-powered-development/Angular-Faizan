@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { CalendarEntriesPageComponent } from './calendar-entries-page.component';
 import { CalendarEntriesService } from '../../services/calendar-entries.service';
 
@@ -9,7 +10,7 @@ describe('CalendarEntriesPageComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CalendarEntriesPageComponent],
-      providers: [CalendarEntriesService],
+      providers: [CalendarEntriesService, provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CalendarEntriesPageComponent);
@@ -27,13 +28,10 @@ describe('CalendarEntriesPageComponent', () => {
     expect(options?.initialView).toBe('timeGridWeek');
   });
 
-  it('should have editable top bar metadata', () => {
-    expect(component.status()).toBe('00 READY TO REVIEW');
-    expect(component.contributors()).toContain('HARDIK');
-    component.onStatusChange('DONE');
-    expect(component.status()).toBe('DONE');
-    component.onContributorsChange('Alice, Bob');
-    expect(component.contributors()).toBe('Alice, Bob');
+  it('should expose current view and allow switching to day view', () => {
+    expect(component.currentView()).toBe('timeGridWeek');
+    component.setView('timeGridDay');
+    expect(component.currentView()).toBe('timeGridDay');
   });
 
   it('should load events from service', () => {

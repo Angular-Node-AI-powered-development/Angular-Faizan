@@ -1,49 +1,137 @@
-<div class="calendar-entries">
-  <!-- Top bar / metadata — editable per contract -->
-  <header class="top-bar">
-    <span class="top-bar__label">Status</span>
-    <input
-      type="text"
-      class="top-bar__input"
-      [ngModel]="status()"
-      (ngModelChange)="onStatusChange($event)"
-      aria-label="Status"
-    />
-    <span class="top-bar__label">Date</span>
-    <input
-      type="text"
-      class="top-bar__input"
-      [ngModel]="date()"
-      (ngModelChange)="onDateChange($event)"
-      aria-label="Date"
-    />
-    <span class="top-bar__label">Contributors</span>
-    <input
-      type="text"
-      class="top-bar__input"
-      [ngModel]="contributors()"
-      (ngModelChange)="onContributorsChange($event)"
-      aria-label="Contributors"
-    />
+<div class="app-layout">
+  <!-- Top nav: logo, Time Tracking, Timesheet/Calendar, week's log, arrows, days, date -->
+  <header class="top-nav">
+    <div class="top-nav__left">
+      <span class="logo" aria-hidden="true">nexus</span>
+      <h1 class="top-nav__title">Time Tracking</h1>
+      <nav class="top-nav__tabs">
+        <a routerLink="/timesheet" class="tab">Timesheet</a>
+        <a routerLink="/calendar-entries" class="tab tab--active">Calendar</a>
+      </nav>
+    </div>
+    <div class="top-nav__right">
+      <span class="week-log">Week's log: {{ weekTotalHours() }} hrs</span>
+      <button type="button" class="btn-icon" (click)="calendarApi?.prev()" aria-label="Previous period">&lt;</button>
+      <button type="button" class="btn-icon" (click)="calendarApi?.next()" aria-label="Next period">&gt;</button>
+      <div class="day-dots">
+        @for (d of dayLabels; track $index) {
+          <span class="day-dot" [class.day-dot--today]="d === todayLetter">{{ d }}</span>
+        }
+      </div>
+      <input type="date" class="date-picker" [value]="selectedDateStr()" (change)="onDatePickerChange($event)" />
+    </div>
   </header>
 
-  <!-- Page title per contract -->
-  <div class="page-title">Calendar Entries</div>
+  <div class="layout-body">
+    <!-- Left sidebar -->
+    <aside class="sidebar sidebar--left">
+      <div class="sidebar__dropdown">Time Trac...</div>
+      <nav class="sidebar__nav">
+        <a href="#" class="sidebar__link">Notifications</a>
+        <a href="#" class="sidebar__link">Profile</a>
+        <a href="#" class="sidebar__link">Settings</a>
+        <a href="#" class="sidebar__link">Logout</a>
+      </nav>
+      <button type="button" class="sidebar__collapse">Collapse</button>
+    </aside>
 
-  <!-- Add Entry button — present; display-only until Story 2 -->
-  <div class="toolbar">
-    <button type="button" class="btn-add-entry" disabled aria-disabled="true">
-      Add Entry
-    </button>
+    <!-- Main: calendar + view toggle -->
+    <main class="main">
+      <div class="main__header">
+        <span class="main__date-range">{{ dateRangeLabel() }}</span>
+        <div class="main__toolbar">
+          <div class="view-toggle">
+            <button type="button" class="view-toggle__btn" [class.view-toggle__btn--active]="currentView() === 'timeGridDay'" (click)="setView('timeGridDay')">Day</button>
+            <button type="button" class="view-toggle__btn" [class.view-toggle__btn--active]="currentView() === 'timeGridWeek'" (click)="setView('timeGridWeek')">Week</button>
+          </div>
+          <span class="week-total">{{ weekTotalHours() }} hrs</span>
+          <button type="button" class="btn-add-entry" (click)="openAddEntry()">Add Entry</button>
+        </div>
+      </div>
+
+      @if (calendarOptions(); as options) {
+        <full-calendar
+          #calendar
+          [options]="options"
+          [events]="events()"
+        />
+      }
+
+      <!-- Toast: bottom-right for validation errors -->
+      @if (toastMessage()) {
+        <div class="toast" role="alert">{{ toastMessage() }}</div>
+      }
+    </main>
+
+    <!-- Right sidebar: Project Tasks, My Calendars -->
+    <aside class="sidebar sidebar--right">
+      <section class="sidebar__section">
+        <h2 class="sidebar__heading">Project Tasks</h2>
+        @for (p of calendarEntries.projects; track p.id) {
+          <div class="project-row" [style.border-left-color]="p.color">
+            <button type="button" class="project-row__toggle" aria-label="Toggle">›</button>
+            <span class="project-row__name">{{ p.name }}</span>
+          </div>
+        }
+      </section>
+      <section class="sidebar__section">
+        <h2 class="sidebar__heading">My Calendars</h2>
+        <label class="checkbox-row">
+          <input type="checkbox" [checked]="calendarFilterChecked('mentioned')" (change)="toggleCalendarFilter('mentioned')" />
+          Mentioned Entries
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" [checked]="calendarFilterChecked('logged')" (change)="toggleCalendarFilter('logged')" />
+          Logged Entries
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" [checked]="calendarFilterChecked('integrated')" (change)="toggleCalendarFilter('integrated')" />
+          Integrated Calendar Entries
+        </label>
+      </section>
+    </aside>
   </div>
-
-  <!-- FullCalendar: week (default) and month views, Today, prev/next -->
-  @if (calendarOptions(); as options) {
-    <full-calendar [options]="options" [events]="events()" />
-  }
-
-  <!-- Summary: total hours per day/week — placeholder -->
-  <section class="summary" aria-label="Total hours">
-    <p class="summary__text">Total hours: —</p>
-  </section>
 </div>
+
+<!-- Add/Edit entry modal -->
+@if (showEntryModal()) {
+  <div class="modal-backdrop" (click)="closeEntryModal()">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="entry-modal-title">
+      <h2 id="entry-modal-title">{{ editingEntryId() ? 'Edit entry' : 'Add entry' }}</h2>
+      <form (ngSubmit)="saveEntry()" #entryForm="ngForm">
+        <label>
+          Description
+          <input type="text" name="description" [(ngModel)]="entryFormModel.description" required />
+        </label>
+        <label>
+          Project
+          <select name="project" [(ngModel)]="entryFormModel.project" required>
+            @for (p of calendarEntries.projects; track p.id) {
+              <option [value]="p.name">{{ p.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Task
+          <input type="text" name="task" [(ngModel)]="entryFormModel.task" required />
+        </label>
+        <label>
+          Date
+          <input type="date" name="startDate" [(ngModel)]="entryFormModel.startDate" required />
+        </label>
+        <label>
+          Start time (24h)
+          <input type="time" name="startTime" [(ngModel)]="entryFormModel.startTime" required />
+        </label>
+        <label>
+          End time (24h)
+          <input type="time" name="endTime" [(ngModel)]="entryFormModel.endTime" required />
+        </label>
+        <div class="modal__actions">
+          <button type="button" (click)="closeEntryModal()">Cancel</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

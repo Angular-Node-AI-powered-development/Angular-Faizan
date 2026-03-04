@@ -13,4 +13,5 @@ export const routes: Routes = [
         './features/calendar-entries/pages/calendar-entries-page/calendar-entries-page.component'
       ).then((m) => m.CalendarEntriesPageComponent),
   },
+  { path: 'timesheet', redirectTo: 'calendar-entries', pathMatch: 'full' },
 ];

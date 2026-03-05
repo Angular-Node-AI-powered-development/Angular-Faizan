@@ -14,10 +14,13 @@ export class CalendarEntriesService {
   private entriesSignal = signal<TimeEntry[]>(this.getMockEntries());
   private projectFilterSignal = signal<Set<string>>(new Set());
   private calendarFilterSignal = signal<Set<CalendarFilterType>>(new Set(['mentioned', 'logged']));
+  /** Story 3: only one timer runs at a time; id of entry whose timer is running, or null */
+  private runningTimerEntryIdSignal = signal<string | null>(null);
 
   readonly entries = this.entriesSignal.asReadonly();
   readonly projectFilter = this.projectFilterSignal.asReadonly();
   readonly calendarFilter = this.calendarFilterSignal.asReadonly();
+  readonly runningTimerEntryId = this.runningTimerEntryIdSignal.asReadonly();
 
   readonly projects: { id: string; name: string; color: string }[] = [
     { id: 'p1', name: 'FPE Powerbank', color: '#e53935' },
@@ -47,6 +50,7 @@ export class CalendarEntriesService {
 
   /** Map TimeEntry to FullCalendar event shape. */
   getEvents(): { id: string; title: string; start: Date; end: Date; extendedProps: Record<string, unknown>; classNames?: string[] }[] {
+    const runningId = this.runningTimerEntryIdSignal();
     return this.getFilteredEvents().map((e) => ({
       id: e.id,
       title: `${e.project} | ${e.task}`,
@@ -60,7 +64,10 @@ export class CalendarEntriesService {
         projectColor: e.projectColor,
         calendarType: e.calendarType ?? 'logged',
       },
-      classNames: e.projectColor ? ['fc-event--project-border'] : [],
+      classNames: [
+        ...(e.projectColor ? ['fc-event--project-border'] : []),
+        ...(e.id === runningId ? ['fc-event--timer-running'] : []),
+      ],
     }));
   }
 
@@ -85,7 +92,29 @@ export class CalendarEntriesService {
   }
 
   removeEntry(id: string): void {
+    if (this.runningTimerEntryIdSignal() === id) {
+      this.runningTimerEntryIdSignal.set(null);
+    }
     this.entriesSignal.update((list) => list.filter((e) => e.id !== id));
+  }
+
+  isTimerRunning(entryId: string): boolean {
+    return this.runningTimerEntryIdSignal() === entryId;
+  }
+
+  startTimer(entryId: string): void {
+    this.runningTimerEntryIdSignal.set(entryId);
+  }
+
+  stopTimer(): void {
+    this.runningTimerEntryIdSignal.set(null);
+  }
+
+  duplicateEntry(entryId: string): TimeEntry | undefined {
+    const entry = this.entriesSignal().find((e) => e.id === entryId);
+    if (!entry) return undefined;
+    const { id: _id, ...rest } = entry;
+    return this.addEntry(rest);
   }
 
   setProjectFilter(projectIds: Set<string>): void {

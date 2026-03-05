@@ -45,16 +45,27 @@ export class CalendarEntriesPageComponent implements OnInit, AfterViewInit {
 
   showEntryModal = signal(false);
   editingEntryId = signal<string | null>(null);
+  showDeleteConfirm = signal(false);
+  entryToDeleteId = signal<string | null>(null);
+  showContextMenu = signal(false);
+  contextMenuEntryId = signal<string | null>(null);
+  contextMenuPosition = { x: 0, y: 0 };
   entryFormModel = {
     description: '',
+    attendees: '',
     project: '',
     task: '',
+    feature: '',
     startTime: '09:00',
     endTime: '17:00',
     startDate: '',
     endDate: '',
   };
   toastMessage = signal<string | null>(null);
+
+  /** Story 5: editable top-bar metadata */
+  topBarStatus = signal('00 READY TO REVIEW');
+  topBarContributors = signal('HARDIK');
 
   readonly dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   readonly todayLetter = this.dayLabels[new Date().getDay()];
@@ -77,7 +88,10 @@ export class CalendarEntriesPageComponent implements OnInit, AfterViewInit {
       dateClick: (arg) => this.onDateClick(arg),
       eventDrop: (arg) => this.onEventDrop(arg),
       datesSet: (arg) => this.onDatesSet(arg),
-      eventDidMount: (arg) => this.applyEventBorderColor(arg),
+      eventDidMount: (arg) => {
+        this.applyEventBorderColor(arg);
+        this.appendPlayPauseAndContextMenu(arg);
+      },
     });
   }
 
@@ -139,12 +153,15 @@ export class CalendarEntriesPageComponent implements OnInit, AfterViewInit {
   openAddEntry(date?: Date, startTime?: string): void {
     const d = date ?? this.calendarApi?.getDate() ?? new Date();
     const dateStr = this.toDateInputValue(d);
+    const time = startTime ?? '09:00';
     this.entryFormModel = {
       description: '',
+      attendees: '',
       project: this.calendarEntries.projects[0]?.name ?? '',
       task: '',
-      startTime: startTime ?? '09:00',
-      endTime: startTime ?? '10:00',
+      feature: '',
+      startTime: time,
+      endTime: time,
       startDate: dateStr,
       endDate: dateStr,
     };
@@ -213,8 +230,10 @@ export class CalendarEntriesPageComponent implements OnInit, AfterViewInit {
     const ed = entry.end;
     this.entryFormModel = {
       description: entry.description,
+      attendees: '',
       project: entry.project,
       task: entry.task,
+      feature: '',
       startTime: this.toTimeString(sd),
       endTime: this.toTimeString(ed),
       startDate: this.toDateInputValue(sd),
@@ -234,8 +253,10 @@ export class CalendarEntriesPageComponent implements OnInit, AfterViewInit {
     const dateStr = this.toDateInputValue(date);
     this.entryFormModel = {
       description: '',
+      attendees: '',
       project: this.calendarEntries.projects[0]?.name ?? '',
       task: '',
+      feature: '',
       startTime,
       endTime: startTime,
       startDate: dateStr,
@@ -265,13 +286,91 @@ export class CalendarEntriesPageComponent implements OnInit, AfterViewInit {
     this.refreshEvents();
   }
 
-  private applyEventBorderColor(arg: { event: { extendedProps: Record<string, unknown> }; el: HTMLElement }): void {
+  private applyEventBorderColor(arg: { event: { id: string; extendedProps: Record<string, unknown> }; el: HTMLElement }): void {
     const color = arg.event.extendedProps['projectColor'] as string | undefined;
     if (color) {
       arg.el.style.borderLeftWidth = '4px';
       arg.el.style.borderLeftStyle = 'solid';
       arg.el.style.borderLeftColor = color;
     }
+    if (this.calendarEntries.isTimerRunning(arg.event.id)) {
+      arg.el.classList.add('fc-event--timer-running');
+    }
+  }
+
+  private appendPlayPauseAndContextMenu(arg: { event: { id: string }; el: HTMLElement }): void {
+    const el = arg.el;
+    const entryId = arg.event.id;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'fc-event-play-pause';
+    btn.setAttribute('aria-label', this.calendarEntries.isTimerRunning(entryId) ? 'Pause' : 'Start timer');
+    btn.textContent = this.calendarEntries.isTimerRunning(entryId) ? '\u23F8' : '\u25B6';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      this.toggleTimer(entryId);
+    });
+    el.appendChild(btn);
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.openContextMenu(e as MouseEvent, entryId);
+    });
+  }
+
+  toggleTimer(entryId: string): void {
+    if (this.calendarEntries.isTimerRunning(entryId)) {
+      this.calendarEntries.stopTimer();
+    } else {
+      this.calendarEntries.stopTimer();
+      this.calendarEntries.startTimer(entryId);
+    }
+    this.refreshEvents();
+  }
+
+  openContextMenu(e: MouseEvent, entryId: string): void {
+    this.contextMenuPosition = { x: e.clientX, y: e.clientY };
+    this.contextMenuEntryId.set(entryId);
+    this.showContextMenu.set(true);
+  }
+
+  closeContextMenu(): void {
+    this.showContextMenu.set(false);
+    this.contextMenuEntryId.set(null);
+  }
+
+  onContextMenuDuplicate(): void {
+    const id = this.contextMenuEntryId();
+    if (id) this.calendarEntries.duplicateEntry(id);
+    this.closeContextMenu();
+    this.refreshEvents();
+  }
+
+  onContextMenuDelete(): void {
+    const id = this.contextMenuEntryId();
+    this.closeContextMenu();
+    if (id) {
+      this.entryToDeleteId.set(id);
+      this.showDeleteConfirm.set(true);
+    }
+  }
+
+  onContextMenuAddEntry(): void {
+    this.closeContextMenu();
+    this.openAddEntry();
+  }
+
+  confirmDelete(): void {
+    const id = this.entryToDeleteId();
+    if (id) this.calendarEntries.removeEntry(id);
+    this.entryToDeleteId.set(null);
+    this.showDeleteConfirm.set(false);
+    this.refreshEvents();
+  }
+
+  cancelDelete(): void {
+    this.entryToDeleteId.set(null);
+    this.showDeleteConfirm.set(false);
   }
 
   toggleCalendarFilter(type: CalendarFilterType): void {
@@ -281,5 +380,34 @@ export class CalendarEntriesPageComponent implements OnInit, AfterViewInit {
 
   calendarFilterChecked(type: CalendarFilterType): boolean {
     return this.calendarEntries.calendarFilter().has(type);
+  }
+
+  onTopBarStatusChange(value: string): void {
+    this.topBarStatus.set(value);
+  }
+
+  onTopBarContributorsChange(value: string): void {
+    this.topBarContributors.set(value);
+  }
+
+  /** Computed duration from form start/end for display (e.g. "00:15"). */
+  entryFormDuration(): string {
+    const m = this.entryFormModel;
+    if (!m.startTime || !m.endTime || !m.startDate || !m.endDate) return '00:00';
+    const start = new Date(`${m.startDate}T${m.startTime}`);
+    const end = new Date(`${m.endDate}T${m.endTime}`);
+    const mins = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+    if (mins <= 0) return '00:00';
+    const h = Math.floor(mins / 60);
+    const min = mins % 60;
+    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  }
+
+  /** Date for display in modal (e.g. "02 Mar 2026"). */
+  entryFormDateDisplay(): string {
+    const d = this.entryFormModel.startDate;
+    if (!d) return '';
+    const date = new Date(d + 'T12:00:00');
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 }

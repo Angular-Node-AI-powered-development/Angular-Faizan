@@ -10,6 +10,7 @@
       </nav>
     </div>
     <div class="top-nav__right">
+      <input type="text" class="top-nav__status" [ngModel]="topBarStatus()" (ngModelChange)="onTopBarStatusChange($event)" placeholder="Status" />
       <span class="week-log">Week's log: {{ weekTotalHours() }} hrs</span>
       <button type="button" class="btn-icon" (click)="calendarApi?.prev()" aria-label="Previous period">&lt;</button>
       <button type="button" class="btn-icon" (click)="calendarApi?.next()" aria-label="Next period">&gt;</button>
@@ -19,6 +20,7 @@
         }
       </div>
       <input type="date" class="date-picker" [value]="selectedDateStr()" (change)="onDatePickerChange($event)" />
+      <input type="text" class="top-nav__contributors" [ngModel]="topBarContributors()" (ngModelChange)="onTopBarContributorsChange($event)" placeholder="Contributors" />
     </div>
   </header>
 
@@ -63,6 +65,29 @@
       }
     </main>
 
+    <!-- Context menu (Story 3 & 5) -->
+    @if (showContextMenu()) {
+      <div class="context-menu-backdrop" (click)="closeContextMenu()" role="presentation"></div>
+      <div class="context-menu" [style.left.px]="contextMenuPosition.x" [style.top.px]="contextMenuPosition.y" role="menu">
+        <button type="button" class="context-menu__item" (click)="onContextMenuDuplicate()">Duplicate</button>
+        <button type="button" class="context-menu__item" (click)="onContextMenuDelete()">Delete</button>
+        <button type="button" class="context-menu__item" (click)="onContextMenuAddEntry()">Add entry</button>
+      </div>
+    }
+
+    <!-- Delete confirmation (Story 3) -->
+    @if (showDeleteConfirm()) {
+      <div class="modal-backdrop" (click)="cancelDelete()" role="presentation"></div>
+      <div class="delete-confirm-dialog" (click)="$event.stopPropagation()" role="alertdialog" aria-labelledby="delete-confirm-title">
+        <h2 id="delete-confirm-title" class="delete-confirm-dialog__title">Delete entry?</h2>
+        <p class="delete-confirm-dialog__text">This cannot be undone.</p>
+        <div class="delete-confirm-dialog__actions">
+          <button type="button" class="btn-secondary" (click)="cancelDelete()">Cancel</button>
+          <button type="button" class="btn-danger" (click)="confirmDelete()">Delete</button>
+        </div>
+      </div>
+    }
+
     <!-- Right sidebar: Project Tasks, My Calendars -->
     <aside class="sidebar sidebar--right">
       <section class="sidebar__section">
@@ -93,45 +118,63 @@
   </div>
 </div>
 
-<!-- Add/Edit entry modal -->
+<!-- Add/Edit entry panel (slide-in from right) -->
 @if (showEntryModal()) {
-  <div class="modal-backdrop" (click)="closeEntryModal()">
-    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="entry-modal-title">
-      <h2 id="entry-modal-title">{{ editingEntryId() ? 'Edit entry' : 'Add entry' }}</h2>
-      <form (ngSubmit)="saveEntry()" #entryForm="ngForm">
-        <label>
-          Description
-          <input type="text" name="description" [(ngModel)]="entryFormModel.description" required />
-        </label>
-        <label>
-          Project
-          <select name="project" [(ngModel)]="entryFormModel.project" required>
+  <div class="add-entry-backdrop" (click)="closeEntryModal()" role="presentation"></div>
+  <aside class="add-entry-panel" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="entry-panel-title">
+    <header class="add-entry-panel__header">
+      <h2 id="entry-panel-title" class="add-entry-panel__title">{{ editingEntryId() ? 'Edit Entry' : 'Add Entry' }}</h2>
+      <button type="button" class="add-entry-panel__close" (click)="closeEntryModal()" aria-label="Close">&times;</button>
+    </header>
+    <form class="add-entry-panel__form" (ngSubmit)="saveEntry()" #entryForm="ngForm">
+      <label class="add-entry-field">
+        <span class="add-entry-field__label">Description&#42;</span>
+        <input type="text" class="add-entry-field__input" name="description" [(ngModel)]="entryFormModel.description" placeholder="Description" required />
+      </label>
+      <label class="add-entry-field">
+        <span class="add-entry-field__label">Select Attendees</span>
+        <span class="add-entry-field__wrap">
+          <input type="text" class="add-entry-field__input" name="attendees" [(ngModel)]="entryFormModel.attendees" placeholder="Select Attendees" />
+          <span class="add-entry-field__icon" aria-hidden="true">&#128101;</span>
+        </span>
+      </label>
+      <label class="add-entry-field">
+        <span class="add-entry-field__label">Project and Task&#42;</span>
+        <span class="add-entry-field__wrap add-entry-field__wrap--with-icon">
+          <select class="add-entry-field__input" name="project" [(ngModel)]="entryFormModel.project" required>
             @for (p of calendarEntries.projects; track p.id) {
               <option [value]="p.name">{{ p.name }}</option>
             }
           </select>
-        </label>
-        <label>
-          Task
-          <input type="text" name="task" [(ngModel)]="entryFormModel.task" required />
-        </label>
-        <label>
-          Date
-          <input type="date" name="startDate" [(ngModel)]="entryFormModel.startDate" required />
-        </label>
-        <label>
-          Start time (24h)
-          <input type="time" name="startTime" [(ngModel)]="entryFormModel.startTime" required />
-        </label>
-        <label>
-          End time (24h)
-          <input type="time" name="endTime" [(ngModel)]="entryFormModel.endTime" required />
-        </label>
-        <div class="modal__actions">
-          <button type="button" (click)="closeEntryModal()">Cancel</button>
-          <button type="submit">Save</button>
+          <input type="text" class="add-entry-field__input add-entry-field__input--task" name="task" [(ngModel)]="entryFormModel.task" placeholder="Task" required />
+          <span class="add-entry-field__icon add-entry-field__icon--dollar" aria-hidden="true">&#36;</span>
+        </span>
+      </label>
+      <label class="add-entry-field">
+        <span class="add-entry-field__label">Feature</span>
+        <select class="add-entry-field__input" name="feature" [(ngModel)]="entryFormModel.feature">
+          <option value="">Select Feature</option>
+        </select>
+      </label>
+      <div class="add-entry-field add-entry-field--time">
+        <span class="add-entry-field__label">Time</span>
+        <div class="add-entry-time-row">
+          <input type="time" class="add-entry-field__input add-entry-field__input--time" name="startTime" [(ngModel)]="entryFormModel.startTime" required />
+          <span class="add-entry-time-sep">-</span>
+          <input type="time" class="add-entry-field__input add-entry-field__input--time" name="endTime" [(ngModel)]="entryFormModel.endTime" required />
+          <span class="add-entry-duration">{{ entryFormDuration() }}</span>
         </div>
-      </form>
-    </div>
-  </div>
+      </div>
+      <label class="add-entry-field">
+        <span class="add-entry-field__label">Select Date</span>
+        <span class="add-entry-field__wrap add-entry-field__wrap--date">
+          <input type="date" class="add-entry-field__input" name="startDate" [(ngModel)]="entryFormModel.startDate" required />
+          <span class="add-entry-field__icon add-entry-field__icon--calendar" aria-hidden="true">&#128197;</span>
+        </span>
+      </label>
+      <div class="add-entry-panel__actions">
+        <button type="submit" class="add-entry-panel__submit">{{ editingEntryId() ? 'Save' : 'Add' }}</button>
+      </div>
+    </form>
+  </aside>
 }
